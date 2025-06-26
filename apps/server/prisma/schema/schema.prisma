@@ -1,10 +1,137 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../generated"
+  provider     = "prisma-client"
+  output       = "../generated"
   moduleFormat = "esm"
 }
 
 datasource db {
   provider = "postgres"
   url      = env("DATABASE_URL")
+}
+
+// Core link model
+model Link {
+  id          String  @id @default(cuid())
+  shortCode   String  @unique // The short URL identifier (e.g., "abc123")
+  originalUrl String // The destination URL
+  domain      String  @default("your-domain.com") // Custom domain support
+  title       String? // Optional title for the link
+  description String? // Optional description
+
+  // Link settings
+  isActive  Boolean   @default(true)
+  password  String? // Optional password protection
+  expiresAt DateTime? // Optional expiration
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // User association (if you have auth)
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  // Analytics relation
+  analytics        Analytics[]
+  AnalyticsSummary AnalyticsSummary[]
+
+  @@map("links")
+}
+
+// User model (optional, for when you add auth)
+model User {
+  id    String  @id @default(cuid())
+  email String  @unique
+  name  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  links Link[]
+
+  @@map("users")
+}
+
+// Main analytics events table
+model Analytics {
+  id     String @id @default(cuid())
+  linkId String
+  link   Link   @relation(fields: [linkId], references: [id], onDelete: Cascade)
+
+  // Event data
+  eventType AnalyticsEventType @default(CLICK)
+  timestamp DateTime           @default(now())
+
+  // Request data
+  ip        String
+  userAgent String
+  referer   String?
+
+  // Parsed location data
+  country   String?
+  region    String?
+  city      String?
+  latitude  Float?
+  longitude Float?
+  timezone  String?
+
+  // Parsed device data
+  device         String? // Mobile, Desktop, Tablet
+  os             String? // Windows, macOS, iOS, Android, etc.
+  osVersion      String?
+  browser        String? // Chrome, Firefox, Safari, etc.
+  browserVersion String?
+
+  // Additional tracking
+  isBot     Boolean @default(false)
+  isMobile  Boolean @default(false)
+  isDesktop Boolean @default(false)
+  isTablet  Boolean @default(false)
+
+  // UTM parameters and query params
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  utmTerm     String?
+  utmContent  String?
+
+  @@index([linkId])
+  @@index([timestamp])
+  @@index([country])
+  @@index([device])
+  @@index([browser])
+  @@map("analytics")
+}
+
+enum AnalyticsEventType {
+  CLICK
+  VIEW
+  CONVERSION
+}
+
+// Aggregated analytics for faster queries
+model AnalyticsSummary {
+  id     String @id @default(cuid())
+  linkId String
+  link   Link   @relation(fields: [linkId], references: [id], onDelete: Cascade)
+
+  // Time period
+  date DateTime // Date for the summary (daily aggregation)
+
+  // Metrics
+  clicks       Int @default(0)
+  views        Int @default(0)
+  uniqueClicks Int @default(0)
+
+  // Top values for the day
+  topCountry String?
+  topDevice  String?
+  topBrowser String?
+  topReferer String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([linkId, date])
+  @@map("analytics_summaries")
 }

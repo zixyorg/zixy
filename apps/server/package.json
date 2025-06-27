@@ -17,13 +17,14 @@
     "schema": "./schema"
   },
   "dependencies": {
-    "dotenv": "^16.4.7",
-    "zod": "^3.25.16",
-    "@trpc/server": "^11.4.2",
+    "@prisma/client": "^6.9.0",
     "@trpc/client": "^11.4.2",
-    "express": "^5.1.0",
+    "@trpc/server": "^11.4.2",
     "cors": "^2.8.5",
-    "@prisma/client": "^6.9.0"
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "ua-parser-js": "^2.0.4",
+    "zod": "^3.25.16"
   },
   "devDependencies": {
     "tsc-alias": "^1.8.11",
